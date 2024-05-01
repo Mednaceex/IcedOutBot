@@ -1,0 +1,5 @@
+discord
+pillow
+requests
+numpy
+jsonpickle
