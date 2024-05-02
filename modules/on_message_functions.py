@@ -1,8 +1,7 @@
 from modules.data import *
 from modules.logger import logger
 from modules.initializer import manager, config_manager
-from modules.functions import check_countries, check_picture, check_geo_link, check_country_tournament, is_pod,\
-    check_word, extract_rank, check_bot_mention, is_counting_ruiner
+import modules.functions as functions
 import random
 from typing import Union
 
@@ -44,7 +43,7 @@ async def _react_introduce(message: discord.Message) -> bool:
 
 async def _react_geonews(message: discord.Message) -> bool:
     if message.channel.id in (ChannelID.GEONEWS, ChannelID.ANNOUNCEMENTS_3PLEAGUE):
-        checked = check_countries(message.content)
+        checked = functions.check_countries(message.content)
         await react_countries(message, checked)
         return True
     return False
@@ -53,7 +52,7 @@ async def _react_geonews(message: discord.Message) -> bool:
 async def _react_country_tournament(message: discord.Message) -> bool:
     if message.channel.id == ChannelID.COUNTRY_TOURNAMENT:
         if message.author.id == UserID.ICY:
-            checked = check_country_tournament(message.content)
+            checked = functions.check_country_tournament(message.content)
             if checked is not None:
                 await react_countries(message, checked)
                 return True
@@ -72,7 +71,7 @@ async def _add_matches(message: discord.Message) -> bool:
 
 
 async def _deal_with_ping(message: discord.Message) -> bool:
-    if await check_bot_mention(message):
+    if await functions.check_bot_mention(message):
         logger.info('%s pinged!', message.author.name)
         await message.channel.send('Don\'t ping unless urgent!')
         return True
@@ -93,7 +92,7 @@ async def _filter_appr_channels(message: discord.Message) -> bool:
 
 async def _guess_loc(message: discord.Message) -> bool:
     if message.channel.id == APPR_CHANNELS['guess_the_location']:
-        is_picture = check_picture(message, True)
+        is_picture = functions.check_picture(message, True)
         if is_picture:
             await guess_loc(message)
             return True
@@ -102,7 +101,7 @@ async def _guess_loc(message: discord.Message) -> bool:
 
 async def _react_left_right(message: discord.Message) -> bool:
     if message.channel.id == APPR_CHANNELS['left_or_right']:
-        is_picture = check_picture(message, False)
+        is_picture = functions.check_picture(message, False)
         if is_picture:
             await message.add_reaction(Emoji.LEFT)
             await message.add_reaction(Emoji.RIGHT)
@@ -121,8 +120,8 @@ async def _react_tip_of_the_day(message: discord.Message) -> bool:
 
 async def _react_insane_score(message: discord.Message) -> bool:
     if message.channel.id == APPR_CHANNELS['insane_scores']:
-        is_picture = check_picture(message, False)
-        has_link = check_geo_link(message)
+        is_picture = functions.check_picture(message, False)
+        has_link = functions.check_geo_link(message)
         if is_picture or has_link:
             if await react_multiple(message, (Emoji.MINDBLOWN, Emoji.GOAT, None),
                                     (Chance.INSANE_MINDBLOWN, Chance.INSANE_GOAT), 'Insane score'):
@@ -132,7 +131,7 @@ async def _react_insane_score(message: discord.Message) -> bool:
 
 async def _react_memes(message: discord.Message) -> bool:
     if message.channel.id == APPR_CHANNELS['memes']:
-        is_picture = check_picture(message, False)
+        is_picture = functions.check_picture(message, False)
         if is_picture:
             if await respond_single(message, 'Skulls and bones.', Chance.SKULLS_AND_BONES, 'Skulls and bones'):
                 return True
@@ -169,10 +168,10 @@ async def _handle_reactions(message: discord.Message) -> bool:
         if message.author.id == UserID.VISH:
             if await react_single(message, Emoji.FISH, Chance.FISH, 'Fish'):
                 return True
-        if is_counting_ruiner(message.author.roles):
+        if functions.is_counting_ruiner(message.author.roles):
             if await react_single(message, Emoji.FISH, Chance.RUINER, 'Ruiner'):
                 return True
-        if is_pod(message.author.roles):
+        if functions.is_pod(message.author.roles):
             if await react_single(message, Emoji.NPC, Chance.NPC, 'NPC'):
                 return True
     finally:
@@ -201,7 +200,7 @@ async def _berate_google_earth(message: discord.Message) -> bool:
 
 async def _berate_soccer(message: discord.Message) -> bool:
     text = message.content
-    if check_word(text, 'soccer') != -1:
+    if functions.check_word(text, 'soccer') != -1:
         await message.channel.send('It\'s called football!')
         return True
     return False
@@ -290,7 +289,7 @@ async def react_rankup(message: discord.Message) -> bool:
     reaction = random.choices((True, False), (Chance.RANKUP, 1 - Chance.RANKUP))[0]
     logger.info('Rank up: %s', reaction)
     if reaction:
-        number = extract_rank(message.content)
+        number = functions.extract_rank(message.content)
         await message.channel.send(number)
         return True
     return False

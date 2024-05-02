@@ -1,7 +1,5 @@
 import random
-import json
 import discord
-from pathlib import Path
 from typing import Optional
 from discord import app_commands
 

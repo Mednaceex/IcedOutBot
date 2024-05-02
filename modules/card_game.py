@@ -272,7 +272,6 @@ class CardGameManager:
         async def disable_button():
             await asyncio.sleep(BUTTON_LIFETIME)
             await view.button.deactivate()
-            view.timedout = True
 
         await asyncio.create_task(disable_button())
 
@@ -655,6 +654,7 @@ class CollectMCQButton(CollectButton):
 
     async def deactivate(self):
         self.disabled = True
+        self._view.timedout = True
         message = self._view.message
         await message.edit(view=self._view)
 

@@ -36,6 +36,19 @@ async def get_channel_by_id(client: discord.Client, channel_id: int) -> discord.
     return await client.fetch_channel(channel_id)
 
 
+async def get_channel_by_link(client: discord.Client, channel_link: str) -> discord.TextChannel:
+    if channel_link.isdigit():
+        return await client.fetch_channel(int(channel_link))
+    if channel_link.find('https://discord.com/channels/') != -1:
+        lst = channel_link.split('/')
+        if lst[-1].isdigit():
+            return await client.fetch_channel(int(lst[-1]))
+    if channel_link.find('<#') != -1:
+        channel_id = channel_link[2:-1:1]
+        return await client.fetch_channel(int(channel_id))
+    raise classes.InvalidChannelError('Invalid channel link or ID!')
+
+
 async def get_tier_channel(client: discord.Client, tier: data.Tier) -> discord.TextChannel:
     channel_id = data.TIER_CHANNELS[tier]
     return await client.fetch_channel(channel_id)
@@ -123,7 +136,7 @@ def is_mod(roles_list: list[discord.Role]) -> bool:
     return False
 
 
-def is_icy(user: discord.User) -> bool:
+def is_icy(user: discord.Member) -> bool:
     if user.id == data.UserID.ICY:
         return True
     for role in user.roles:
@@ -288,5 +301,28 @@ def save_week(week: int):
         json.dump(dct, file)
 
 
-def get_nickname(user: discord.User) -> str:
+def get_nickname(user: discord.Member) -> str:
     return user.nick if user.nick is not None else user.name
+
+
+async def talk(message: discord.Message, client: discord.Client) -> bool:
+    if message.channel.id not in data.TALK_CHANNELS:
+        return False
+    lst = message.content.split(' ')
+    if lst[0] != '!send':
+        return False
+    try:
+        channel = await get_channel_by_link(client, lst[1])
+        await channel.send(f'{" ".join(lst[2:])}')
+    except discord.NotFound:
+        await message.channel.send('Channel with this ID is not found!')
+    except discord.Forbidden:
+        await message.channel.send('I can\'t see this channel!')
+    except discord.HTTPException:
+        await message.channel.send('Channel with this ID is not found!')
+    except classes.InvalidChannelError:
+        await message.channel.send('Invalid channel link! '
+                                   'Please specify the channel after \"!send\" by either copying its ID or link.')
+    except Exception as e:
+        await message.channel.send(repr(e))
+    return True

@@ -693,3 +693,8 @@ class ConfigManager:
     def __init__(self):
         self.CURRENT_WEEK = 0
         self.PLAYOFFS = False
+
+
+class InvalidChannelError(Exception):
+    def __init__(self, msg: str):
+        super(InvalidChannelError, self).__init__(msg)

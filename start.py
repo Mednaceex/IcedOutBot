@@ -5,11 +5,11 @@ from pathlib import Path
 import discord
 
 import modules.queue
-from modules.data import THRESHOLD, TOKEN, SERVER, CardChannelIDs, CardChannelWeights, ICEDOUTSERVER_ID, MEDCORD_ID
+from modules.data import THRESHOLD, TOKEN, SERVER, CardChannelIDs, CardChannelWeights, ICEDOUTSERVER_ID
 from modules.initializer import client, manager, registrator, card_game_manager, tree, config_manager
 import modules.commands
 from modules.logger import logger
-from modules.functions import get_channel_by_id, set_up_config
+from modules.functions import get_channel_by_id, set_up_config, talk
 from modules.on_message_functions import func_list
 
 set_up_config(('week', 'playoffs', 'message_count'), (0, True, 0))
@@ -28,6 +28,8 @@ async def on_message(message: discord.Message):
     except AttributeError:
         logger.info('Message by %s in DMs: \"%s\"', message.author.name, message.content)
         return
+    if await talk(message, client):
+        return
     for func in func_list:
         try:
             if await func(message):
@@ -38,14 +40,6 @@ async def on_message(message: discord.Message):
         registrator.increase_count()
         if registrator.check_message_count(THRESHOLD):
             await card_game_manager.play()
-    if message.guild.id == MEDCORD_ID:
-        lst = message.content.split(' ')
-        if lst[0] == '!send':
-            try:
-                channel = await get_channel_by_id(client, int(lst[1]))
-                await channel.send(f'{" ".join(lst[2:])}')
-            except Exception as e:
-                await message.channel.send(str(e))
 
 
 @client.event
