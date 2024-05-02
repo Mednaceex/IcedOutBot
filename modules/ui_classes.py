@@ -197,14 +197,18 @@ class PickUI:
             self.items.append(self.redeem_moving_button)
         self.items.append(self.send_button)
         self.approved = False
+        self.views = self.get_views_list()
+
+    def get_views_list(self) -> list[discord.ui.View]:
+        views = [discord.ui.View()]
         i = 0
-        self.views = [discord.ui.View()]
         for idx, elem in enumerate(self.items):
             if i >= 5:
                 i = 0
-                self.views.append(discord.ui.View())
-            self.views[-1].add_item(elem)
+                views.append(discord.ui.View())
+            views[-1].add_item(elem)
             i += 1
+        return views
 
     async def send_ui(self, interaction: discord.Interaction, message: str):
         await interaction.followup.send(message, view=self.views[0], ephemeral=True)
@@ -226,33 +230,29 @@ class PickUI:
             return False
         return True
 
-    async def send(self, interaction: discord.Interaction):
+    async def check_pick(self, interaction: discord.Interaction) -> bool:
         for menu in itertools.chain(self.world_map_pick_menus, self.world_map_veto_menus, self.country_map_pick_menus,
                                     self.country_map_veto_menus):
             if len(menu.values) == 0:
                 await interaction.response.send_message('Please complete all the picks.', ephemeral=True)
-                return
+                return False
             if not self.check_map_repetitions():
                 await interaction.response.send_message('You can\'t choose the same map!', ephemeral=True)
-                return
+                return False
+        if self.has_redeem_mode_menu and len(self.redeem_mode_menu.values) == 0:
+            await interaction.response.send_message('Please pick the gamemode.', ephemeral=True)
+            return False
         if not self.approved:
             self.approved = True
             await interaction.response.send_message('Be careful, you won\'t be able to change your picks later! '
                                                     'Press the button again to confirm.', ephemeral=True)
+            return False
+        return True
+
+    async def send(self, interaction: discord.Interaction):
+        if not await self.check_pick(interaction):
             return
-        redeemed_mode = None
-        if self.has_redeem_mode_menu:
-            redeemed_mode_repr = extract_name(self.redeem_mode_menu.values[0])
-            if redeemed_mode_repr == 'MOVING':
-                redeemed_mode = data.Gamemode.MOVING
-            elif redeemed_mode_repr == 'NM':
-                redeemed_mode = data.Gamemode.NM
-            elif redeemed_mode_repr == 'NMPZ':
-                redeemed_mode = data.Gamemode.NMPZ
-        elif self.has_redeem_nmpz_button and self.redeem_nmpz_button.active:
-            redeemed_mode = data.Gamemode.NMPZ
-        elif self.has_redeem_moving_button and self.redeem_moving_button.active:
-            redeemed_mode = data.Gamemode.MOVING
+        redeemed_mode = self.get_redeemed_mode(extract_name(self.redeem_mode_menu.values[0]))
         pick = classes.ArbitraryPick(
             [get_map_by_name(extract_name(menu.values[0])) for menu in self.world_map_pick_menus],
             [get_map_by_name(extract_name(menu.values[0])) for menu in self.world_map_veto_menus],
@@ -275,6 +275,21 @@ class PickUI:
         else:
             await interaction.followup.send('You have other matches this week, please run */pick* again.',
                                             ephemeral=True)
+
+    def get_redeemed_mode(self, redeemed_mode_repr: str) -> data.Gamemode | None:
+        redeemed_mode = None
+        if self.has_redeem_mode_menu:
+            if redeemed_mode_repr == 'MOVING':
+                redeemed_mode = data.Gamemode.MOVING
+            elif redeemed_mode_repr == 'NM':
+                redeemed_mode = data.Gamemode.NM
+            elif redeemed_mode_repr == 'NMPZ':
+                redeemed_mode = data.Gamemode.NMPZ
+        elif self.has_redeem_nmpz_button and self.redeem_nmpz_button.active:
+            redeemed_mode = data.Gamemode.NMPZ
+        elif self.has_redeem_moving_button and self.redeem_moving_button.active:
+            redeemed_mode = data.Gamemode.MOVING
+        return redeemed_mode
 
     def assemble_send_message(self, mode: data.Gamemode):
         message = 'You picked:**'

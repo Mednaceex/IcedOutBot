@@ -13,7 +13,8 @@ from modules.logger import logger, log_errors
 from modules.ui_classes import ResetPicksUI
 from modules.card_game import Rarity, Collection, Card, SCQuestion, MCQuestion, idx_to_card, idx_to_collection,\
     QuestionType
-from modules.functions import defer, is_mod, is_icy, send_permission_message, check_backup, save_image
+from modules.functions import defer, is_mod, is_icy, send_permission_message, check_backup, save_image, save_week,\
+    get_nickname
 
 
 def get_autocomplete(names: list, values: list = None):
@@ -175,11 +176,7 @@ async def change_week(interaction: discord.Interaction, week: int):
     logger.info('%s ran /changeweek, permission allowed', interaction.user.name)
     manager.set_current_week(week)
     config_manager.CURRENT_WEEK = week
-    with open(Path('data', 'config.json'), 'r') as file:
-        dct = json.load(file)
-    dct['week'] = week
-    with open(Path('data', 'config.json'), 'w') as file:
-        json.dump(dct, file)
+    save_week(week)
     await interaction.followup.send(f'It\'s week {week} now!')
     logger.info('%s changed the week to %d.', interaction.user.name, week)
 
@@ -197,7 +194,7 @@ async def cards(interaction: discord.Interaction, user: Optional[discord.Member]
         lst = card_game_manager.display_collection(user, sorting=sort_by)
     else:
         logger.error('The user %s ran /cards and is not a discord Member object!', interaction.user.name)
-    nick = user.nick if user.nick is not None else user.name
+    nick = get_nickname(interaction.user)
     await paginate(interaction, lst, f'**{nick}\'s collection:**\n')
     logger.info('%s ran /cards, permission allowed', interaction.user.name)
 
@@ -467,7 +464,7 @@ async def show(interaction: discord.Interaction, card: str):
 async def progress(interaction: discord.Interaction, collection: Optional[str] = 'All'):
     await defer(interaction, 'progress', ephemeral=False)
     logger.info('%s ran /progress, permission allowed', interaction.user.name)
-    nick = interaction.user.nick if interaction.user.nick is not None else interaction.user.name
+    nick = get_nickname(interaction.user)
     if collection == 'All':
         lst = card_game_manager.get_overall_progress(interaction.user.id)
         await paginate(interaction, lst, f'**{nick}\'s progress:**\n')

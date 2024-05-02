@@ -272,6 +272,7 @@ class CardGameManager:
         async def disable_button():
             await asyncio.sleep(BUTTON_LIFETIME)
             await view.button.deactivate()
+            view.timedout = True
 
         await asyncio.create_task(disable_button())
 
@@ -465,12 +466,18 @@ class CardGameManager:
             if card.card in missing_list:
                 missing_list.remove(card.card)
                 collected_list.append(card.card)
+        total_progress = self.get_total_progress(collected_list)
+        collection_progress_list = self.get_collection_progress(collected_list, missing_list)
+        return [f'**Overall:**', total_progress, '', '**Collections:**'] + collection_progress_list
 
+    def get_total_progress(self, collected_list: list[Card]) -> str:
         collected = len(collected_list)
         total = len(self.cards_list)
         percentage = collected * 100 / total if total != 0 else 0
-        lst = [f'**Overall:**', f'{format(percentage, ".1f")}% ({collected}/{total})',
-               '', '**Collections:**']
+        return f'{format(percentage, ".1f")}% ({collected}/{total})'
+
+    def get_collection_progress(self, collected_list: list[Card], missing_list: list[Card]) -> list[str]:
+        output = []
         for collection in self.collections_list:
             collected = 0
             missing = 0
@@ -482,9 +489,9 @@ class CardGameManager:
                     missing += 1
             percentage = collected * 100 / (missing + collected) if missing + collected != 0 else 0
             s = f' {Emoji.CHECKMARK}' if 0 == missing else ''
-            lst.append(f'{collection.emoji}{collection.name}: {format(percentage, ".1f")}% '
-                       f'({collected}/{missing + collected}){s}')
-        return lst
+            output.append(f'{collection.emoji}{collection.name}: {format(percentage, ".1f")}% '
+                          f'({collected}/{missing + collected}){s}')
+        return output
 
     def get_progress(self, user_id: int, collection: Collection) -> list[str]:
         collected_list = []
@@ -548,6 +555,7 @@ class CollectButtonView(discord.ui.View):
         self.card = card
         self.button = CollectMCQButton(self) if question.type == QuestionType.MULTIPLECHOICE else CollectSCQButton(self)
         self.add_item(self.button)
+        self.timedout = False
 
     def set_message(self, message: discord.Message):
         self.message = message
@@ -566,6 +574,9 @@ class CollectButton(discord.ui.Button):
         self.disabled = True
         message = self._view.message
         await message.edit(view=self._view)
+
+    async def timed_out(self):
+        return self._view.timedout
 
 
 class CollectSCQButton(CollectButton):
@@ -696,29 +707,33 @@ class QuestionnaireSendButton(discord.ui.Button):
         if not self.qview.question.type == QuestionType.MULTIPLECHOICE:
             raise AttributeError('Not multiple choice!')
         await funcs.defer(interaction, 'choose card game answer')
-        if self.qview.button.disabled:
+        if self.qview.button.timed_out():
+            await interaction.followup.send(f'Sorry <@{interaction.user.id}>, the card has despawned.',
+                                            ephemeral=False)
+        elif self.qview.button.disabled:
             await interaction.followup.send(f'Sorry <@{interaction.user.id}>, the card has already been collected.',
                                             ephemeral=False)
         else:
             cooldown = self._view.manager.get_remaining_cooldown(interaction.user.id, self.qview.button)
             if cooldown > 0:
                 await interaction.followup.send(f'You have to wait for {funcs.seconds_to_string(int(cooldown + 1))}!',
-                                                        ephemeral=True)
+                                                ephemeral=True)
             else:
-                self.qview.manager.add_cooldown(interaction.user.id, self.qview.button, datetime.now())
-                if self.qview.question.check_answer(answer):
-                    await self.qview.button.deactivate()
-                    await interaction.followup.send(
-                        f'<@{interaction.user.id}> collected ***{self.qview.card.name}***!', ephemeral=False)
-                    self.qview.manager.add_collected_card(self.qview.card, interaction.user.id)
-                else:
-                    await interaction.followup.send(f'<@{interaction.user.id}> Wrong answer, try again in '
-                                                    f'{funcs.seconds_to_string(ANSWER_TIMEOUT)}!', ephemeral=False)
+                await self.collect(interaction, answer)
 
-        self.qview.send_button.disabled = True
-        self.qview.answer.disabled = True
-        self.qview.stop()
+        self.qview.deactivate()
         await self.qview.collect_button_interaction.delete_original_response()
+
+    async def collect(self, interaction: discord.Interaction, answer: str):
+        self.qview.manager.add_cooldown(interaction.user.id, self.qview.button, datetime.now())
+        if self.qview.question.check_answer(answer):
+            await self.qview.button.deactivate()
+            await interaction.followup.send(
+                f'<@{interaction.user.id}> collected ***{self.qview.card.name}***!', ephemeral=False)
+            self.qview.manager.add_collected_card(self.qview.card, interaction.user.id)
+        else:
+            await interaction.followup.send(f'<@{interaction.user.id}> Wrong answer, try again in '
+                                            f'{funcs.seconds_to_string(ANSWER_TIMEOUT)}!', ephemeral=False)
 
 
 class AnswerSelectMenu(discord.ui.Select):
@@ -750,6 +765,11 @@ class QuestionnaireView(discord.ui.View):
         self.add_item(self.answer)
         self.add_item(self.send_button)
         self.collect_button_interaction = collect_button_interaction
+
+    def deactivate(self) -> None:
+        self.send_button.disabled = True
+        self.answer.disabled = True
+        self.stop()
 
 
 def card_to_str(collected_card: CollectedCard) -> str:

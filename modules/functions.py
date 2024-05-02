@@ -279,3 +279,14 @@ def get_map_by_name(name: str) -> data.Map:
             return _map
     raise AttributeError(f"Map {name} not found!")
 
+
+def save_week(week: int):
+    with open(Path('data', 'config.json'), 'r') as file:
+        dct = json.load(file)
+    dct['week'] = week
+    with open(Path('data', 'config.json'), 'w') as file:
+        json.dump(dct, file)
+
+
+def get_nickname(user: discord.User) -> str:
+    return user.nick if user.nick is not None else user.name
