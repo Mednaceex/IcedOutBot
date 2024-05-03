@@ -707,7 +707,7 @@ class QuestionnaireSendButton(discord.ui.Button):
         if not self.qview.question.type == QuestionType.MULTIPLECHOICE:
             raise AttributeError('Not multiple choice!')
         await funcs.defer(interaction, 'choose card game answer')
-        if self.qview.button.timed_out():
+        if await self.qview.button.timed_out():
             await interaction.followup.send(f'Sorry <@{interaction.user.id}>, the card has despawned.',
                                             ephemeral=False)
         elif self.qview.button.disabled:

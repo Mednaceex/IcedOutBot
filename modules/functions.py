@@ -62,6 +62,10 @@ async def get_user_by_id(client: discord.Client, user_id: int) -> discord.User:
     return await client.fetch_user(user_id)
 
 
+async def get_member_by_id(guild: discord.Guild, user_id: int) -> discord.Member:
+    return await guild.fetch_member(user_id)
+
+
 async def defer(interaction: discord.Interaction, command_name='cmd', ephemeral: bool = True):
     try:
         await interaction.response.defer(ephemeral=ephemeral)

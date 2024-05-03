@@ -1,16 +1,15 @@
 from __future__ import annotations
 import json
 from pathlib import Path
-
 import discord
 
-import modules.queue
 from modules.data import THRESHOLD, TOKEN, SERVER, CardChannelIDs, CardChannelWeights, ICEDOUTSERVER_ID
 from modules.initializer import client, manager, registrator, card_game_manager, tree, config_manager
-import modules.commands
 from modules.logger import logger
 from modules.functions import get_channel_by_id, set_up_config, talk
 from modules.on_message_functions import func_list
+import modules.commands
+import modules.queue
 
 set_up_config(('week', 'playoffs', 'message_count'), (0, True, 0))
 with open(Path('data', 'config.json'), 'r') as config:

@@ -252,7 +252,8 @@ class PickUI:
     async def send(self, interaction: discord.Interaction):
         if not await self.check_pick(interaction):
             return
-        redeemed_mode = self.get_redeemed_mode(extract_name(self.redeem_mode_menu.values[0]))
+        redeemed_mode = self.get_redeemed_mode(extract_name(self.redeem_mode_menu.values[0])) if \
+            self.has_redeem_mode_menu else None
         pick = classes.ArbitraryPick(
             [get_map_by_name(extract_name(menu.values[0])) for menu in self.world_map_pick_menus],
             [get_map_by_name(extract_name(menu.values[0])) for menu in self.world_map_veto_menus],
