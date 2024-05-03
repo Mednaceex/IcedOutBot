@@ -9,7 +9,7 @@ from enum import IntEnum
 from pathlib import Path, PureWindowsPath
 from datetime import datetime, timedelta
 import modules.functions as funcs
-from modules.data import TIMEOUT, BUTTON_LIFETIME, Emoji, ANSWER_TIMEOUT
+from modules.data import TIMEOUT, BUTTON_LIFETIME, Emoji, ANSWER_TIMEOUT, SpawnRate
 from modules.logger import logger
 
 
@@ -248,9 +248,9 @@ class CardGameManager:
     def configure_prob_list(self) -> list[float]:
         lst = []
         for card in self.cards_list:
-            prob = 60. if card.rarity == Rarity.COMMON else \
-                30. if card.rarity == Rarity.RARE else \
-                10. if card.rarity == Rarity.EPIC else 0
+            prob = SpawnRate.COMMON if card.rarity == Rarity.COMMON else \
+                SpawnRate.RARE if card.rarity == Rarity.RARE else \
+                SpawnRate.EPIC if card.rarity == Rarity.EPIC else 0
             # 100. if card.rarity == Rarity.ULTRACOMMON else \
             lst.append(prob*card.chance*card.collection.chance)
         return lst

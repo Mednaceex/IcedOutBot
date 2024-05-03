@@ -4,13 +4,17 @@ import discord
 import numpy
 from pathlib import Path
 import json
+import yaml
 
-THRESHOLD = 16  # How many messages for 1 card needs to be sent
-MAX_THRESHOLD = 1000000  # Number of messages stored before the count resets
-BUTTON_LIFETIME = 600
-TIMEOUT = 300  # Minimum timeout in seconds between two cards can be sent
-ITEMS_PER_PAGE = 15
-ANSWER_TIMEOUT = 60
+with open(Path('config.yml'), 'r') as file:
+    config = yaml.load(file, yaml.Loader)
+
+THRESHOLD = config['card spawn rate']
+MAX_THRESHOLD = config['stored messages']
+BUTTON_LIFETIME = config['card lifetime']
+TIMEOUT = config['card timeout']
+ITEMS_PER_PAGE = config['items per page']
+ANSWER_TIMEOUT = config['answer timeout']
 
 pic_ext = ['.jpg', '.png', '.jpeg', '.webp']
 with open(Path('data', 'config.json'), 'r') as file:
@@ -113,7 +117,6 @@ WORLD_MAP_LIST = (WorldMap('A Community World', 'https://www.geoguessr.com/maps/
                   WorldMap('Less-Extreme Regionguessing', 'https://www.geoguessr.com/maps/658a3ef12255cca9e7f39c06'),
                   WorldMap('The World at Equilibrium', 'https://www.geoguessr.com/maps/64a33494a05ac4fecb6b9e8a'),
                   )
-
 
 COUNTRY_MAP_DICT = {'A Balanced Turkey': 'https://www.geoguessr.com/maps/61fb2314990720000141ecc9',
                     'AI Generated Nigeria': 'https://www.geoguessr.com/maps/63715d43261c845960550585',
@@ -294,23 +297,23 @@ class Role(str):
 
 
 class Chance(float):
-    ARNAV = 0.002
-    GOAT = 0.001
-    KANAV_SKULL = 0.063
-    IAMNOTKANAV_SKULL = 0.063
-    FMBOT_FIRE = 0.05
-    FMBOT_SKULL = 0.05
-    INSANE_GOAT = 0.075
-    INSANE_MINDBLOWN = 0.3
-    PRAISE_ICY = 0.007
-    SKULLS_AND_BONES = 0.05
-    FISH = 0.005
-    RUINER = 0.02
-    NPC = 0.01
-    SIMON = 0.00
-    VIDEO_STREAM_GOAT = 0.1
-    KANAV_GM = 0.03
-    RANKUP = 1
+    ARNAV = config['chances']['arnav']
+    GOAT = config['chances']['goat']
+    KANAV_SKULL = config['chances']['kanav skull']
+    IAMNOTKANAV_SKULL = config['chances']['iamnotkanav skull']
+    FMBOT_FIRE = config['chances']['fmbot fire']
+    FMBOT_SKULL = config['chances']['fmbot skull']
+    INSANE_GOAT = config['chances']['insane score goat']
+    INSANE_MINDBLOWN = config['chances']['insane score mindblown']
+    PRAISE_ICY = config['chances']['praise icy']
+    SKULLS_AND_BONES = config['chances']['skulls and bones']
+    FISH = config['chances']['vish fish']
+    RUINER = config['chances']['ruiner fish']
+    NPC = config['chances']['npc']
+    SIMON = config['chances']['simon for wc']
+    VIDEO_STREAM_GOAT = config['chances']['video stream goat']
+    KANAV_GM = config['chances']['kanav_gm']
+    RANKUP = config['chances']['rankup']
 
 
 loc_phrases = (LocPhrase('Come on, every toddler knows this is'),
@@ -348,14 +351,15 @@ COUNTRIES = {'Albania': '🇦🇱', 'Andorra': '🇦🇩', 'Argentina': '🇦�
              'Malta': '🇲🇹', 'Mexico': '🇲🇽', 'Monaco': '🇲🇨', 'Mongolia': '🇲🇳', 'Montenegro': '🇲🇪',
              'Netherlands': '🇳🇱',
              'New Zealand': '🇳🇿', 'Nigeria': '🇳🇬', 'North Macedonia': '🇲🇰', 'Norway': '🇳🇴', 'Pakistan': '🇵🇰',
-             'Palestine': '🇵🇸', 'Panama': '🇵🇦', 'Peru': '🇵🇪', 'Philippines': '🇵🇭', 'Poland': '🇵🇱', 'Portugal': '🇵🇹',
+             'Palestine': '🇵🇸', 'Panama': '🇵🇦', 'Peru': '🇵🇪', 'Philippines': '🇵🇭', 'Poland': '🇵🇱',
+             'Portugal': '🇵🇹',
              'Qatar': '🇶🇦',
              'Romania': '🇷🇴', 'Russia': '🇷🇺', 'Rwanda': '🇷🇼', 'San Marino': '🇸🇲', 'Senegal': '🇸🇳',
              'Serbia': '🇷🇸',
              'Singapore': '🇸🇬', 'Slovakia': '🇸🇰', 'Slovenia': '🇸🇮', 'South Africa': '🇿🇦', 'Spain': '🇪🇸',
              'Sri Lanka': '🇱🇰', 'Sweden': '🇸🇪', 'Switzerland': '🇨🇭', 'Thailand': '🇹🇭', 'Tunisia': '🇹🇳',
              'Turkey': '🇹🇷', 'Uganda': '🇺🇬', 'Ukraine': '🇺🇦', 'United Arab Emirates': '🇦🇪',
-             'United Kingdom': '🇬🇧', 'United States': '🇺🇸', 'Uruguay': '🇺🇾', 'Taiwan': '🇹🇼'}
+             'United Kingdom': '🇬🇧', 'United States': '🇺🇸', 'Uruguay': '🇺🇾', 'Taiwan': '🇹🇼', 'Lebanon': '🇱🇧'}
 TERRITORIES = {'American Samoa': '🇦🇸', 'Bermuda': '🇧🇲', 'British Indian Ocean Territory': '🇮🇴',
                'Christmas Island': '🇨🇽', 'Cocos (Keeling) Islands': '🇨🇨', 'Curacao': '🇨🇼',
                'Falkland Islands': '🇫🇰',
@@ -364,9 +368,8 @@ TERRITORIES = {'American Samoa': '🇦🇸', 'Bermuda': '🇧🇲', 'British Ind
                'Northern Mariana Islands': '🇲🇵', 'Puerto Rico': '🇵🇷', 'Reunion': '🇷🇪',
                'Saint Pierre and Miquelon': '🇵🇲', 'South Georgia and the South Sandwich Islands': '🇬🇸',
                'Svalbard': '🇸🇯', 'Antarctica': '🇦🇶', 'United States Virgin Islands': '🇻🇮'}
-RARE_COUNTRIES = {'Belarus': '🇧🇾', 'Vanuatu': '🇻🇺', 'Nepal': '🇳🇵', 'Lebanon': '🇱🇧', 'Mali': '🇲🇱',
-                  'Madagascar': '🇲🇬',
-                  'Egypt': '🇪🇬', 'Costa Rica': '🇨🇷', 'China': '🇨🇳', 'Tanzania': '🇹🇿'}
+RARE_COUNTRIES = {'Belarus': '🇧🇾', 'Vanuatu': '🇻🇺', 'Nepal': '🇳🇵', 'Mali': '🇲🇱',
+                  'Madagascar': '🇲🇬', 'Egypt': '🇪🇬', 'Costa Rica': '🇨🇷', 'China': '🇨🇳', 'Tanzania': '🇹🇿'}
 NOT_IN_GAME_COUNTRIES = {
     'Equatorial Guinea': '🇬🇶',
     'Saudi Arabia': '🇸🇦',
@@ -511,5 +514,15 @@ TIER_CHANNELS = {Tier.S_TIER: 1211401695444209805,
                  }
 NMPZ_TIERS = ()
 MOVING_TIERS = ()
-CardChannelIDs = (1206268998916775936, 1206269046232981525, 1140405951451631647, 1217584660092031007)
-CardChannelWeights = (1., 1., 0.25, 0.3)
+
+CardChannelIDs = []
+CardChannelWeights = []
+for key, val in config['card spawn channels'].items():
+    CardChannelIDs.append(key)
+    CardChannelWeights.append(val)
+
+
+class SpawnRate(float):
+    COMMON = config['card rarities']['common']
+    RARE = config['card rarities']['rare']
+    EPIC = config['card rarities']['epic']

@@ -52,7 +52,6 @@ async def on_ready():
     await tree.sync(guild=SERVER)
     # client.add_view(CollectButtonView())
     logger.info('Bot is ready.')
-    modules.queue.save()
 
 
 client.run(TOKEN)

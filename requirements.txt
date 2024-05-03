@@ -3,3 +3,4 @@ pillow
 requests
 numpy
 jsonpickle
+PyYAML

@@ -1,0 +1,48 @@
+# How many messages for 1 card needs to be sent
+card spawn rate: 16
+
+# Minimum timeout in seconds after which the next card can be sent
+card timeout: 300
+
+# Minimum timeout in seconds between two answer attempts to a multiple choice question
+answer timeout: 60
+
+# Time in seconds before a card despawns
+card lifetime: 600
+
+# {Channel ID}: {relative chance of a card spawning there}
+card spawn channels:
+  1206268998916775936: 1.0
+  1206269046232981525: 1.0
+  1140405951451631647: 0.25
+  1217584660092031007: 0.3
+
+chances:
+  arnav: 0.002
+  fmbot fire: 0.05
+  fmbot skull: 0.05
+  goat: 0.001
+  iamnotkanav skull: 0.063
+  insane score goat: 0.075
+  insane score mindblown: 0.3
+  kanav skull: 0.063
+  kanav_gm: 0.03
+  npc: 0.01
+  praise icy: 0.007
+  rankup: 1.0
+  ruiner fish: 0.02
+  simon for wc: 0.0
+  skulls and bones: 0.05
+  video stream goat: 0.1
+  vish fish: 0.005
+
+card rarities:
+  common: 60.0
+  rare: 30.0
+  epic: 10.0
+
+# Number of lines in one page of a navigable menu
+items per page: 15
+
+# Number of messages stored before the count resets
+stored messages: 1000000
