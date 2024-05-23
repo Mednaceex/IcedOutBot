@@ -271,7 +271,7 @@ class CardGameManager:
     async def start_timer(view: CollectButtonView):
         async def disable_button():
             await asyncio.sleep(BUTTON_LIFETIME)
-            await view.button.deactivate()
+            await view.button.deactivate(True)
 
         await asyncio.create_task(disable_button())
 
@@ -569,12 +569,17 @@ class CollectButton(discord.ui.Button):
     async def callback(self, interaction: discord.Interaction):
         pass
 
-    async def deactivate(self):
+    async def deactivate(self, timedout: bool):
         self.disabled = True
+        if timedout:
+            await self.set_timedout()
         message = self._view.message
         await message.edit(view=self._view)
 
-    async def timed_out(self):
+    async def set_timedout(self):
+        self._view.timedout = True
+
+    def timed_out(self):
         return self._view.timedout
 
 
@@ -652,9 +657,10 @@ class CollectMCQButton(CollectButton):
         except Exception as e:
             logger.error(e)
 
-    async def deactivate(self):
+    async def deactivate(self, timedout: bool):
         self.disabled = True
-        self._view.timedout = True
+        if timedout:
+            await self.set_timedout()
         message = self._view.message
         await message.edit(view=self._view)
 
@@ -673,13 +679,17 @@ class Questionnaire(discord.ui.Modal):
 
     async def on_submit(self, interaction: discord.Interaction):
         await funcs.defer(interaction, 'filled card game form')
-        if self.button.disabled:
+        if self.button.timed_out():
+            await interaction.followup.send(f'Sorry <@{interaction.user.id}>, the card has despawned.',
+                                                ephemeral=False)
+            await self.qv.deactivate_answer_button()
+        elif self.button.disabled:
             await interaction.followup.send(f'Sorry <@{interaction.user.id}>, the card has already been collected.',
                                                 ephemeral=False)
             await self.qv.deactivate_answer_button()
         else:
             if self.question.check_answer(str(self.answer)):
-                await self.button.deactivate()
+                await self.button.deactivate(False)
                 await self.qv.deactivate_answer_button()
                 await interaction.followup.send(
                     f'<@{interaction.user.id}> collected ***{self.card.name}***!', ephemeral=False)
@@ -707,7 +717,7 @@ class QuestionnaireSendButton(discord.ui.Button):
         if not self.qview.question.type == QuestionType.MULTIPLECHOICE:
             raise AttributeError('Not multiple choice!')
         await funcs.defer(interaction, 'choose card game answer')
-        if await self.qview.button.timed_out():
+        if self.qview.button.timed_out():
             await interaction.followup.send(f'Sorry <@{interaction.user.id}>, the card has despawned.',
                                             ephemeral=False)
         elif self.qview.button.disabled:
@@ -727,7 +737,7 @@ class QuestionnaireSendButton(discord.ui.Button):
     async def collect(self, interaction: discord.Interaction, answer: str):
         self.qview.manager.add_cooldown(interaction.user.id, self.qview.button, datetime.now())
         if self.qview.question.check_answer(answer):
-            await self.qview.button.deactivate()
+            await self.qview.button.deactivate(False)
             await interaction.followup.send(
                 f'<@{interaction.user.id}> collected ***{self.qview.card.name}***!', ephemeral=False)
             self.qview.manager.add_collected_card(self.qview.card, interaction.user.id)

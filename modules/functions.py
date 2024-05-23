@@ -1,11 +1,16 @@
 from __future__ import annotations, division
-import discord
-import random
+
 import json
-import requests
-from pathlib import Path
+import random
+from functools import partial
 from os.path import isfile
+from pathlib import Path
+
+import discord
+import requests
 from PIL import Image
+from jsonpickle import decode
+
 import modules.classes as classes
 import modules.data as data
 from modules.logger import logger
@@ -330,3 +335,20 @@ async def talk(message: discord.Message, client: discord.Client) -> bool:
     except Exception as e:
         await message.channel.send(repr(e))
     return True
+
+
+def open_map_list(week: int, name: str) -> list[data.Map] | None:
+    with open(Path('data', 'map_lists.json'), 'r') as file:
+        lst = json.load(file)
+    for w in lst:
+        if w['week'] == week:
+            return list(map(decode, w[name]))
+    return None
+
+
+open_country_map_list: partial = partial(open_map_list, name='country_maps')
+open_world_map_list: partial = partial(open_map_list, name='world_maps')
+
+
+def get_map_from_menu(menu: discord.ui.Select) -> data.Map:
+    return get_map_by_name(extract_name(menu.values[0]))

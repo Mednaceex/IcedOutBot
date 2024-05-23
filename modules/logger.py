@@ -1,8 +1,7 @@
 import logging
-from logging.handlers import TimedRotatingFileHandler
 from datetime import datetime
+from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
-
 
 log_name = Path('logs', 'bot_logs.log')
 logging.getLogger('discord.app_commands.tree').setLevel(logging.CRITICAL)

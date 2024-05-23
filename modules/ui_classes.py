@@ -4,10 +4,11 @@ import itertools
 import typing
 
 import discord
+
 import modules.classes as classes
 import modules.data as data
+import modules.functions as functions
 from modules.logger import logger
-from modules.functions import defer, get_map_by_name, extract_name, has_repeats
 
 
 class MapSelectMenu(discord.ui.Select):
@@ -20,7 +21,7 @@ class MapSelectMenu(discord.ui.Select):
             self.add_option(label=label + _map.name)
 
     async def callback(self, interaction: discord.Interaction):
-        await defer(interaction, command_name=self.command_name)
+        await functions.defer(interaction, command_name=self.command_name)
 
 
 class VetoSelectMenu(MapSelectMenu):
@@ -50,7 +51,7 @@ class RedeemModeMenu(discord.ui.Select):
             self.add_option(label='Pick ' + mode.name)
 
     async def callback(self, interaction: discord.Interaction):
-        await defer(interaction, command_name='RedeemMode')
+        await functions.defer(interaction, command_name='RedeemMode')
 
 
 class RedeemButton(discord.ui.Button):
@@ -102,7 +103,7 @@ class ResetPicksSelectMenu(discord.ui.Select):
         self.add_option(label='All tiers')
 
     async def callback(self, interaction: discord.Interaction):
-        await defer(interaction, command_name='ResetPicksSelectMenu')
+        await functions.defer(interaction, command_name='ResetPicksSelectMenu')
 
 
 class ResetPicksSendButton(discord.ui.Button):
@@ -224,9 +225,9 @@ class PickUI:
         return s
 
     def check_map_repetitions(self) -> bool:
-        world_maps = [get_map_by_name(extract_name(menu.values[0])) for menu in self.world_map_pick_menus]
-        country_maps = [get_map_by_name(extract_name(menu.values[0])) for menu in self.country_map_pick_menus]
-        if has_repeats(world_maps) or has_repeats(country_maps):
+        world_maps = [functions.get_map_from_menu(menu) for menu in self.world_map_pick_menus]
+        country_maps = [functions.get_map_from_menu(menu) for menu in self.country_map_pick_menus]
+        if functions.has_repeats(world_maps) or functions.has_repeats(country_maps):
             return False
         return True
 
@@ -252,13 +253,13 @@ class PickUI:
     async def send(self, interaction: discord.Interaction):
         if not await self.check_pick(interaction):
             return
-        redeemed_mode = self.get_redeemed_mode(extract_name(self.redeem_mode_menu.values[0])) if \
+        redeemed_mode = self.get_redeemed_mode(functions.extract_name(self.redeem_mode_menu.values[0])) if \
             self.has_redeem_mode_menu else None
         pick = classes.ArbitraryPick(
-            [get_map_by_name(extract_name(menu.values[0])) for menu in self.world_map_pick_menus],
-            [get_map_by_name(extract_name(menu.values[0])) for menu in self.world_map_veto_menus],
-            [get_map_by_name(extract_name(menu.values[0])) for menu in self.country_map_pick_menus],
-            [get_map_by_name(extract_name(menu.values[0])) for menu in self.country_map_veto_menus],
+            [functions.get_map_from_menu(menu) for menu in self.world_map_pick_menus],
+            [functions.get_map_from_menu(menu) for menu in self.world_map_veto_menus],
+            [functions.get_map_from_menu(menu) for menu in self.country_map_pick_menus],
+            [functions.get_map_from_menu(menu) for menu in self.country_map_veto_menus],
             redeemed_mode, None)
         if not self.is_backup:
             await self.pick_manager.send_picks(interaction, self.match, pick)
@@ -295,13 +296,13 @@ class PickUI:
     def assemble_send_message(self, mode: data.Gamemode):
         message = 'You picked:**'
         for menu in self.world_map_pick_menus:
-            message += f"\n{extract_name(menu.values[0])} {mode.name}"
+            message += f"\n{functions.extract_name(menu.values[0])} {mode.name}"
         for menu in self.country_map_pick_menus:
-            message += f"\n{extract_name(menu.values[0])}"
+            message += f"\n{functions.extract_name(menu.values[0])}"
         if len(self.world_map_veto_menus) + len(self.country_map_veto_menus) > 0:
             message += '**\nand vetoed:**'
             for menu in self.world_map_veto_menus:
-                message += f"\n{extract_name(menu.values[0])}"
+                message += f"\n{functions.extract_name(menu.values[0])}"
             for menu in self.country_map_veto_menus:
-                message += f"\n{extract_name(menu.values[0])}"
+                message += f"\n{functions.extract_name(menu.values[0])}"
         return message + '**'

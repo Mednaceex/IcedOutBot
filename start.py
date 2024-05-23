@@ -1,15 +1,17 @@
 from __future__ import annotations
+
 import json
 from pathlib import Path
+
 import discord
 
+# noinspection PyUnresolvedReferences
+import modules.commands
 from modules.data import THRESHOLD, TOKEN, SERVER, CardChannelIDs, CardChannelWeights, ICEDOUTSERVER_ID
+from modules.functions import get_channel_by_id, set_up_config, talk
 from modules.initializer import client, manager, registrator, card_game_manager, tree, config_manager
 from modules.logger import logger
-from modules.functions import get_channel_by_id, set_up_config, talk
 from modules.on_message_functions import func_list
-import modules.commands
-import modules.queue
 
 set_up_config(('week', 'playoffs', 'message_count'), (0, True, 0))
 with open(Path('data', 'config.json'), 'r') as config:
@@ -49,8 +51,7 @@ async def on_ready():
     card_game_manager.set_channels([await get_channel_by_id(client, chid) for chid in CardChannelIDs],
                                    CardChannelWeights)
     await tree.sync(guild=SERVER)
-    # client.add_view(CollectButtonView())
     logger.info('Bot is ready.')
 
-
-client.run(TOKEN)
+if __name__ == '__main__':
+    client.run(TOKEN)

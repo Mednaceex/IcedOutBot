@@ -1,5 +1,7 @@
-import discord
 from typing import Callable, Optional
+
+import discord
+
 from modules.data import ITEMS_PER_PAGE, BUTTON_LIFETIME
 
 

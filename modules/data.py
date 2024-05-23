@@ -1,9 +1,11 @@
 from __future__ import annotations
+
+import json
 from enum import Enum
+from pathlib import Path
+
 import discord
 import numpy
-from pathlib import Path
-import json
 import yaml
 
 with open(Path('config.yml'), 'r') as file:

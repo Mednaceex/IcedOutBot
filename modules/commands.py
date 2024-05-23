@@ -1,18 +1,19 @@
 import random
-import discord
 from typing import Optional
+
+import discord
 from discord import app_commands
 
 import modules.queue
-from modules.pagination import paginate
+from modules.card_game import Rarity, Collection, Card, SCQuestion, MCQuestion, idx_to_card, idx_to_collection, \
+    QuestionType
 from modules.data import Role, ICEDOUTSERVER, OWNERS_3PLEAGUE, pop, weights, Emoji, Tier
+from modules.functions import defer, is_mod, is_icy, send_permission_message, check_backup, save_image, save_week, \
+    get_nickname
 from modules.initializer import manager, card_game_manager, tree, config_manager
 from modules.logger import logger, log_errors
+from modules.pagination import paginate
 from modules.ui_classes import ResetPicksUI
-from modules.card_game import Rarity, Collection, Card, SCQuestion, MCQuestion, idx_to_card, idx_to_collection,\
-    QuestionType
-from modules.functions import defer, is_mod, is_icy, send_permission_message, check_backup, save_image, save_week,\
-    get_nickname
 
 
 def get_autocomplete(names: list, values: list = None):

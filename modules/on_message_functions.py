@@ -1,9 +1,12 @@
-from modules.data import *
-from modules.logger import logger
-from modules.initializer import manager, config_manager
-import modules.functions as functions
 import random
 from typing import Union
+
+import discord
+
+import modules.functions as functions
+from modules.data import *
+from modules.initializer import manager, config_manager
+from modules.logger import logger
 
 
 async def _react_fmbot(message: discord.Message) -> bool:
@@ -174,7 +177,9 @@ async def _handle_reactions(message: discord.Message) -> bool:
         if functions.is_pod(message.author.roles):
             if await react_single(message, Emoji.NPC, Chance.NPC, 'NPC'):
                 return True
-    finally:
+        return False
+    except discord.errors.Forbidden:
+        logger.error('%s blocked reaction', message.author.name)
         return False
 
 
@@ -226,7 +231,6 @@ async def react_multiple(message: discord.Message, emoji_list: Union[list, tuple
         return True
     except discord.errors.Forbidden:
         logger.error('%s blocked reaction %s', message.author.name, reaction)
-    finally:
         return False
 
 
@@ -240,7 +244,6 @@ async def react_single(message: discord.Message, emoji: str, chance: float, debu
         return True
     except discord.errors.Forbidden:
         logger.error('%s blocked reaction %s', message.author.name, emoji)
-    finally:
         return False
 
 
@@ -254,7 +257,6 @@ async def respond_single(message: discord.Message, response: str, chance: float,
         return True
     except discord.errors.Forbidden:
         logger.error('Message response to %s is blocked', message.author.name)
-    finally:
         return False
 
 

@@ -1,6 +1,7 @@
 import discord
-from modules.classes import PickManager, MessageRegistrator, ConfigManager
+
 from modules.card_game import CardGameManager
+from modules.classes import PickManager, MessageRegistrator, ConfigManager
 from modules.data import MAX_THRESHOLD, THRESHOLD
 
 intents = discord.Intents.default()

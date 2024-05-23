@@ -1,16 +1,22 @@
 from __future__ import annotations
-import modules.functions as functions
-from modules.logger import logger
-import modules.data as data
-import modules.ui_classes as ui_classes
-import discord
+
+import itertools
 import json
-import jsonpickle
 import random
 import typing
-import itertools
-from pathlib import Path
 from dataclasses import dataclass
+from pathlib import Path
+
+import discord
+import jsonpickle
+
+import modules.data as data
+import modules.functions as functions
+import modules.ui_classes as ui_classes
+from modules.logger import logger
+
+
+Vetoable = data.Map | data.Gamemode
 
 
 class Match3PLeague:
@@ -23,7 +29,7 @@ class Match3PLeague:
         self.backup = [backup_1, backup_2]
         self.announced = announced
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'<@{self.id_1}> vs <@{self.id_2}>'
 
     def __eq__(self, other) -> bool:
@@ -45,7 +51,7 @@ class ArbitraryPick:
         self.country_map_picks = country_map_picks
         self.country_map_vetoes = country_map_vetoes
 
-    def __str__(self):
+    def __str__(self) -> str:
         s = "World map picks:"
         for _map in self.world_map_picks:
             s += f"\n{_map.name}"
@@ -64,7 +70,7 @@ class ArbitraryPick:
 
 class Pick:
     def __init__(self, user_id: int, match: Match3PLeague, arbitrary_pick: ArbitraryPick,
-                 known_vetoes: list[data.Map] = None):
+                 known_vetoes: list[Vetoable] | None = None):
         self.user_id = user_id
         self.match = match
         self.redeemed_mode = data.DEFAULT_GAMEMODE if arbitrary_pick.redeemed_mode is None else \
@@ -85,7 +91,7 @@ class Pick:
         self.country_map_picks = arbitrary_pick.country_map_picks
         self.country_map_vetoes = arbitrary_pick.country_map_vetoes
 
-    def __str__(self):
+    def __str__(self) -> str:
         s = f"Pick by {self.user_id} for match {self.match.id_1} vs {self.match.id_2}:\n"
         s += "World map picks:"
         for _map in self.world_map_picks:
@@ -131,12 +137,13 @@ class PickManager:
     def configure_world_map_list() -> list[data.WorldMap]:
         return data.WORLD_MAP_LIST
 
-    def check_adjacent_weeks(self, country_map_list: list[data.CountryMap], week: int) -> bool:
+    @staticmethod
+    def check_adjacent_weeks(country_map_list: list[data.CountryMap], week: int) -> bool:
         s = set([_map.name for _map in country_map_list])
-        if (prv := self.open_country_map_list(week-1)) is not None:
+        if (prv := functions.open_country_map_list(week-1)) is not None:
             if s & set([_map.name for _map in prv]):
                 return False
-        if (nxt := self.open_country_map_list(week+1)) is not None:
+        if (nxt := functions.open_country_map_list(week+1)) is not None:
             if s & set([_map.name for _map in nxt]):
                 return False
         return True
@@ -600,28 +607,12 @@ class PickManager:
                     found = True
         return found
 
-    def open_country_map_list(self, week: int) -> list[data.CountryMap] | None:
-        with open(Path('data', 'map_lists.json'), 'r') as file:
-            lst = json.load(file)
-        for w in lst:
-            if w['week'] == week:
-                return list(map(jsonpickle.decode, w['country_maps']))
-        return None
-
-    def open_world_map_list(self, week: int) -> list[data.WorldMap] | None:
-        with open(Path('data', 'map_lists.json'), 'r') as file:
-            lst = json.load(file)
-        for w in lst:
-            if w['week'] == week:
-                return list(map(jsonpickle.decode, w['world_maps']))
-        return None
-
     def set_up_map_lists(self, week: int):
-        if (lst := self.open_world_map_list(week)) is None:
+        if (lst := functions.open_world_map_list(week)) is None:
             self.world_map_list = self.configure_world_map_list()
         else:
             self.world_map_list = lst
-        if (lst := self.open_country_map_list(week)) is None:
+        if (lst := functions.open_country_map_list(week)) is None:
             self.country_map_list = self.configure_country_map_list(week)
         else:
             self.country_map_list = lst
@@ -684,7 +675,7 @@ class MessageRegistrator:
         with open(Path('data', 'config.json'), 'w') as file:
             json.dump(dct, file)
 
-    def check_message_count(self, threshold: int = None) -> bool:
+    def check_message_count(self, threshold: int | None = None) -> bool:
         success = random.choices((True, False), (1 / threshold, 1 - 1 / threshold))[0]
         return self.count == 0 if threshold is None else success
 
