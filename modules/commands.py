@@ -4,13 +4,14 @@ from typing import Optional
 import discord
 from discord import app_commands
 
+from io import BytesIO
 import modules.queue
 from modules.card_game import Rarity, Collection, Card, SCQuestion, MCQuestion, idx_to_card, idx_to_collection, \
     QuestionType
 from modules.data import Role, ICEDOUTSERVER, OWNERS_3PLEAGUE, pop, weights, Emoji, Tier
 from modules.functions import defer, is_mod, is_icy, send_permission_message, check_backup, save_image, save_week, \
-    get_nickname
-from modules.initializer import manager, card_game_manager, tree, config_manager
+    get_nickname, contained
+from modules.initializer import manager, card_game_manager, tree, config_manager, queue_manager
 from modules.logger import logger, log_errors
 from modules.pagination import paginate
 from modules.ui_classes import ResetPicksUI
@@ -28,7 +29,7 @@ def get_autocomplete(names: list, values: list = None):
             if name.lower().find(inp.lower()) == 0:
                 lst.append(app_commands.Choice(name=name, value=value))
         for name, value in zip(names, values):
-            if name.lower().find(inp.lower()) != 0 and inp.lower() in name.lower():
+            if name.lower().find(inp.lower()) != 0 and contained(inp.lower(), name.lower()):
                 lst.append(app_commands.Choice(name=name, value=value))
         if len(lst) > 25:
             lst = lst[:25:]
@@ -39,7 +40,7 @@ def get_autocomplete(names: list, values: list = None):
 async def collection_autocomplete(interaction: discord.Interaction, inp: str) -> list[app_commands.Choice[str]]:
     collection_list = [x[0] for x in card_game_manager.get_collections_reprs_list()]
     lst = [app_commands.Choice(name=collection, value=collection)
-           for collection in collection_list if inp.lower() in collection.lower()]
+           for collection in collection_list if contained(inp.lower(), collection.lower())]
     if len(lst) > 25:
         lst = lst[:25:]
     return lst
@@ -48,7 +49,7 @@ async def collection_autocomplete(interaction: discord.Interaction, inp: str) ->
 async def grade_autocomplete(interaction: discord.Interaction, card: str) -> list[app_commands.Choice[str]]:
     cards_list = card_game_manager.get_card_reprs_list(interaction.user, only_ungraded=True)
     lst = [app_commands.Choice(name=_card_name, value=f'{idx}_12c76c7711c67894c34c234c7098642c0b7')
-           for _card_name, idx in cards_list if card.lower() in _card_name.lower()]
+           for _card_name, idx in cards_list if contained(card.lower(), _card_name.lower())]
     if len(lst) > 25:
         lst = lst[:25:]
     return lst
@@ -57,7 +58,16 @@ async def grade_autocomplete(interaction: discord.Interaction, card: str) -> lis
 async def card_autocomplete(interaction: discord.Interaction, card: str) -> list[app_commands.Choice[str]]:
     cards_list = card_game_manager.get_card_reprs_list(interaction.user, only_ungraded=False)
     lst = [app_commands.Choice(name=_card_name, value=f'{idx}_12c76c7711c67894c34c234c7098642c0b7')
-           for _card_name, idx in cards_list if card.lower() in _card_name.lower()]
+           for _card_name, idx in cards_list if contained(card.lower(), _card_name.lower())]
+    if len(lst) > 25:
+        lst = lst[:25:]
+    return lst
+
+
+async def queue_name_autocomplete(interaction: discord.Interaction, q: str) -> list[app_commands.Choice[str]]:
+    queue_list = queue_manager.get_queue_reprs_list()
+    lst = [app_commands.Choice(name=_queue_name, value=_queue_name) for _queue_name in queue_list
+           if contained(q.lower(), _queue_name.lower())]
     if len(lst) > 25:
         lst = lst[:25:]
     return lst
@@ -67,7 +77,7 @@ async def progress_autocomplete(interaction: discord.Interaction, collection: st
     collection_list = card_game_manager.get_collections_reprs_list()
     lst = [app_commands.Choice(name='All', value=f'All')]
     lst += [app_commands.Choice(name=_collection_name, value=f'{idx}_12c76c7711c67894c34c234c7098642c0b7')
-            for _collection_name, idx in collection_list if collection.lower() in _collection_name.lower()]
+            for _collection_name, idx in collection_list if contained(collection.lower(), _collection_name.lower())]
     if len(lst) > 25:
         lst = lst[:25:]
     return lst
@@ -76,7 +86,7 @@ async def progress_autocomplete(interaction: discord.Interaction, collection: st
 async def cards_autocomplete(interaction: discord.Interaction, card: str) -> list[app_commands.Choice[str]]:
     cards_list = card_game_manager.cards_list
     lst = [app_commands.Choice(name=str(_card), value=_card.id) for _card in cards_list
-           if card.lower() in str(_card).lower()]
+           if contained(card.lower(), str(_card).lower())]
     if len(lst) > 25:
         lst = lst[:25:]
     return lst
@@ -84,15 +94,16 @@ async def cards_autocomplete(interaction: discord.Interaction, card: str) -> lis
 
 async def all_cards_autocomplete(interaction: discord.Interaction, card: str) -> list[app_commands.Choice[str]]:
     cards_list = card_game_manager.cards_list
-    lst = [app_commands.Choice(name='All', value='All')] + [app_commands.Choice(name=str(_card), value=_card.id) for
-                                                            _card in cards_list if card.lower() in str(_card).lower()]
+    lst = [app_commands.Choice(name='All', value='All')] + \
+          [app_commands.Choice(name=str(_card), value=_card.id)
+           for _card in cards_list if contained(card.lower(), str(_card).lower())]
     if len(lst) > 25:
         lst = lst[:25:]
     return lst
 
 
 async def tier_autocomplete(interaction: discord.Interaction, tier: str) -> list[app_commands.Choice[str]]:
-    lst = [app_commands.Choice(name=_tier, value=_tier) for _tier in Tier if tier.lower() in _tier.lower()]
+    lst = [app_commands.Choice(name=_tier, value=_tier) for _tier in Tier if contained(tier.lower(), _tier.lower())]
     if len(lst) > 25:
         lst = lst[:25:]
     return lst
@@ -407,36 +418,57 @@ async def delete_collection(interaction: discord.Interaction, collection: str):
 
 @log_errors
 @app_commands.autocomplete(action=get_autocomplete(['join', 'leave', 'info', 'push', 'undo_push']))
-@app_commands.checks.has_any_role(Role.TWITCH_SUB, Role.CINNAMON, Role.BOOSTER, Role.VIP)
+@app_commands.autocomplete(queue_name=queue_name_autocomplete)
 @tree.command(name='queue', guild=ICEDOUTSERVER)
-async def queue(interaction: discord.Interaction, action: str):
+async def queue(interaction: discord.Interaction, action: str, queue_name: str):
     await defer(interaction, 'queue')
+    try:
+        q = queue_manager.get_queue_by_name(queue_name)
+    except modules.queue.QueueNotFound:
+        await interaction.followup.send('This is not an existing queue name!')
+        return
+
     message = ''
     if action == 'join':
-        message = 'You successfully joined the queue!' if modules.queue.join(interaction.user.id)\
-            else 'You are already in the queue!'
+        if q.check_roles(interaction.user):
+            if q.can_join(interaction.user.id):
+                message = 'You successfully joined the queue!'
+                q.join(interaction.user.id)
+            else:
+                message = 'You are already in the queue!'
+        else:
+            message = 'Your roles don\'t allow you to join this queue!'
     elif action == 'leave':
-        message = 'You successfully left the queue!' if modules.queue.leave(interaction.user.id)\
-            else 'You were not in the queue!'
+        if q.in_queue(interaction.user.id):
+            message = 'You successfully left the queue!'
+            q.leave(interaction.user.id)
+        else:
+            message = 'You were not in the queue!'
     elif action == 'info':
-        await paginate(interaction, [], 'Queue is empty!', numbered=False) if modules.queue.is_empty()\
-             else await paginate(interaction, modules.queue.info(), 'Current queue:', numbered=True)
+        await paginate(interaction, [], 'Queue is empty!', numbered=False) if q.is_empty()\
+             else await paginate(interaction, q.info(), 'Current queue:', numbered=True)
     elif action == 'push':
         if is_icy(interaction.user):
-            user_id = modules.queue.push()
-            message = 'Queue is already empty!' if user_id is None\
-                else f'Pushed successfully, <@{user_id}> left the queue!'
+            if q.can_push():
+                user_id = q.push()
+                message = f'Pushed successfully, <@{user_id}> left the queue!'
+            else:
+                message = 'Queue is already empty!'
         else:
             message = 'You don\'t have the permission to run this command!'
     elif action == 'undo_push':
         if is_icy(interaction.user):
-            message = 'Push reverted successfully!' if modules.queue.undo_push() else 'There were no pushes yet!'
+            if q.can_undo_push():
+                message = 'Push reverted successfully!'
+                q.undo_push()
+            else:
+                message = 'There were no pushes yet!'
         else:
             message = 'You don\'t have the permission to run this command!'
     else:
         action = 'Undefined'
         message = 'Wrong action'
-    modules.queue.save()
+    queue_manager.save_queues()
     if action != 'info':
         await interaction.followup.send(message)
     logger.info('%s %s the queue', interaction.user.name, action)
@@ -452,7 +484,16 @@ async def show(interaction: discord.Interaction, card: str):
         return
     idx = int(card.split('_')[0])
     _card = idx_to_card(card_game_manager, interaction.user.id, idx)
-    await interaction.response.send_message(file=discord.File(_card.card.image_path), ephemeral=False)
+    total = card_game_manager.get_total(_card.card)
+    player_total = card_game_manager.get_player_total(_card.card, interaction.user.id)
+    ending = "ies" if player_total > 1 else "y"
+    image = card_game_manager.get_image(_card)
+    with BytesIO() as image_binary:
+        image.save(image_binary, 'PNG')
+        image_binary.seek(0)
+        await interaction.response.send_message(
+            content=f'You have {player_total} cop{ending} out of {total} in total!',
+            file=discord.File(fp=image_binary, filename='card.png'), ephemeral=False)
 
 
 @log_errors

@@ -1,13 +1,17 @@
 from __future__ import annotations
+
 import asyncio
-import random
-import discord
-import json
 import hashlib
-from typing import Dict
+import json
+import random
+from datetime import datetime, timedelta
 from enum import IntEnum
 from pathlib import Path, PureWindowsPath
-from datetime import datetime, timedelta
+from typing import Dict
+
+import discord
+from PIL import Image, ImageDraw, ImageFont
+
 import modules.functions as funcs
 from modules.data import TIMEOUT, BUTTON_LIFETIME, Emoji, ANSWER_TIMEOUT, SpawnRate
 from modules.logger import logger
@@ -19,8 +23,8 @@ class ElementNotFoundError(Exception):
 
 
 class WrongRarityError(Exception):
-    def __init__(self):
-        super(WrongRarityError, self).__init__('Wrong rarity!')
+    def __init__(self, rarity):
+        super(WrongRarityError, self).__init__(f'Wrong rarity \"{str(rarity)}\"!')
 
 
 class UserHasNoCardsError(Exception):
@@ -47,7 +51,7 @@ def get_rarity(rarity: str | int) -> Rarity:
     elif rarity == 'EPIC':
         r = Rarity.EPIC
     else:
-        raise WrongRarityError
+        raise WrongRarityError(rarity)
     return r
 
 
@@ -181,6 +185,14 @@ class CollectedCard:
         return isinstance(other, CollectedCard) and other.card == self.card \
                and other.grade == self.grade and other.date == self.date
 
+    def get_str(self, include_grade) -> str:
+        card = self.card
+        name = f'{card.name} ({card.collection.name} Collection, {card.rarity.name.capitalize()})'
+        if include_grade:
+            name += ', Grade: ' if self.grade != 'UNGRADED' else ', '
+            name += f'{self.grade}'
+        return name
+
 
 class CardGameManager:
     def __init__(self, message_threshold: int):
@@ -241,6 +253,35 @@ class CardGameManager:
 
     def check_collection_exists(self, name: str) -> bool:
         return name in [n.name for n in self.collections_list]
+
+    def get_total(self, card: Card) -> int:
+        total = 0
+        for user_id, collection in self.collections.items():
+            for _card in collection:
+                if _card.card == card:
+                    total += 1
+        return total
+
+    def get_player_total(self, card: Card, user_id: int) -> int:
+        total = 0
+        collection = self.collections[user_id]
+        for _card in collection:
+            if _card.card == card:
+                total += 1
+        return total
+
+    @staticmethod
+    def get_image(card: CollectedCard) -> Image.Image:
+        image = Image.open(card.card.image_path)
+        if card.grade == 'UNGRADED':
+            return image
+        grade_path = Path('data', 'grade.png')
+        grade = Image.open(grade_path)
+        image.paste(grade, mask=grade)
+        draw = ImageDraw.Draw(image)
+        font = ImageFont.truetype('arial.ttf', 60)
+        draw.text((175, 932), f'{"{:10.1f}".format(card.grade)}', (0, 0, 0), font=font)
+        return image
 
     def check_card_exists(self, card_id: int) -> bool:
         return card_id in [n.id for n in self.cards_list]
@@ -366,12 +407,7 @@ class CardGameManager:
         if user.id in self.collections:
             for idx, collected_card in enumerate(self.collections[user.id]):
                 if not only_ungraded or collected_card.grade == 'UNGRADED':
-                    card = collected_card.card
-                    name = [f'{card.name} ({card.collection.name} Collection, '
-                            f'{card.rarity.name.capitalize()})', idx]
-                    if not only_ungraded:
-                        name[0] += ', Grade: ' if collected_card.grade != 'UNGRADED' else ', '
-                        name[0] += f'{collected_card.grade}'
+                    name = [collected_card.get_str(not only_ungraded), idx]
                     lst.append(name)
         return lst
 
@@ -833,5 +869,5 @@ def get_rarity_emoji(rarity: Rarity) -> Emoji:
     # elif rarity == Rarity.ULTRACOMMON:
     # emoji = Emoji.BLUE_DIAMOND
     else:
-        raise WrongRarityError
+        raise WrongRarityError(rarity)
     return emoji

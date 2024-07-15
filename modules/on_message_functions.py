@@ -4,7 +4,8 @@ from typing import Union
 import discord
 
 import modules.functions as functions
-from modules.data import *
+from modules.data import APPR_CHANNELS, UserID, Chance, ChannelID, Emoji, OWNERS_3PLEAGUE, TIER_CHANNELS, \
+    icy_praisers, COUNTRY_LIST, PROB_LIST, loc_phrases, ALL_COUNTRY_DICT
 from modules.initializer import manager, config_manager
 from modules.logger import logger
 

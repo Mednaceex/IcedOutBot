@@ -352,3 +352,21 @@ open_world_map_list: partial = partial(open_map_list, name='world_maps')
 
 def get_map_from_menu(menu: discord.ui.Select) -> data.Map:
     return get_map_by_name(extract_name(menu.values[0]))
+
+
+def contained(substring: str, source: str) -> bool:
+    """
+    Checks for a string containing another one. Success means every character from the substring appears in the
+    source string in order. For example, "ABC" is contained in "xAxxBxCxx" and "ABAC" but not "BCAB".
+
+    :param substring: a string that is supposed to be contained
+    :param source: a source string that contains the substring
+    :return: whether a substring is contained
+    """
+    k = -1
+    for char in substring:
+        idx = source[k+1::].find(char)
+        if idx == -1:
+            return False
+        k = k + 1 + idx
+    return True
