@@ -11,7 +11,7 @@ from modules.card_game import Rarity, Collection, Card, SCQuestion, MCQuestion, 
 from modules.data import Role, ICEDOUTSERVER, OWNERS_3PLEAGUE, pop, weights, Emoji, Tier
 from modules.functions import defer, is_mod, is_icy, send_permission_message, check_backup, save_image, save_week, \
     get_nickname, contained
-from modules.initializer import manager, card_game_manager, tree, config_manager, queue_manager
+from modules.initializer import manager, card_game_manager, tree, config_manager, queue_manager, profile_manager
 from modules.logger import logger, log_errors
 from modules.pagination import paginate
 from modules.ui_classes import ResetPicksUI
@@ -516,3 +516,44 @@ async def progress(interaction: discord.Interaction, collection: Optional[str] =
     _collection = idx_to_collection(card_game_manager, idx)
     lst = card_game_manager.get_progress(interaction.user.id, _collection)
     await paginate(interaction, lst, f'**{nick}\'s progress:**\n')
+
+
+@log_errors
+@app_commands.describe(link='Paste the link to your GeoGuessr profile:')
+@tree.command(name='add_profile', guild=ICEDOUTSERVER)
+async def add_profile(interaction: discord.Interaction, link: str):
+    await defer(interaction, 'add_profile', ephemeral=True)
+    logger.info('%s ran /add_profile, permission allowed', interaction.user.name)
+    link = link.strip()
+    if link == 'https://www.geoguessr.com/me/profile':
+        message = 'Rookie mistake! The profile link is found on the bottom of the "Profile" page. Try again!'
+    elif link.find('https://www.geoguessr.com/user/') == 0:
+        link = link.replace('https://www.geoguessr.com/user/', '').strip(' /\\')
+        if not link.isalnum():
+            logger.error(f'Wrong format profile link submitted, not alphanumerical: {link}')
+            message = 'Wrong link format. The profile link is found on the bottom of the "Profile" page. Try again!'
+        else:
+            if profile_manager.is_profile_submitted(interaction.user.id):
+                message = 'Your profile is successfully updated!'
+            else:
+                message = 'Your profile is successfully added!'
+            profile_manager.store_profile(interaction.user.id, link)
+    else:
+        logger.info(f'Wrong format profile link submitted: {link}')
+        message = 'Wrong link format. The profile link is found on the bottom of the "Profile" page. Try again!'
+    await interaction.followup.send(message)
+
+
+@log_errors
+@tree.command(name='view_profiles', guild=ICEDOUTSERVER)
+@app_commands.checks.has_any_role(Role.ICY_ROLE, Role.MOD)
+async def view_profiles(interaction: discord.Interaction, user: Optional[discord.Member] = None):
+    await defer(interaction, 'add_profile', ephemeral=True)
+    logger.info('%s ran /view_profiles, permission allowed', interaction.user.name)
+    if user is None:
+        message = profile_manager.create_profiles_message_list()
+        logger.debug(f'Created profiles message list: {message}')
+        await paginate(interaction, message, 'Profile links')
+    else:
+        message = profile_manager.get_user_profile_message(user.id)
+        await interaction.followup.send(message)

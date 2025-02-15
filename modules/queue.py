@@ -37,6 +37,10 @@ class QueueManager:
                 return queue
         raise QueueNotFound(name)
 
+    def add_queue(self, queue: Queue):
+        self.queues.append(queue)
+        self.save_queues()
+
 
 class Queue:
     def __init__(self, name: str, roles: tuple[Role] = None):

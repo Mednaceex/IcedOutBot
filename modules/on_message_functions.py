@@ -298,7 +298,17 @@ async def react_rankup(message: discord.Message) -> bool:
     return False
 
 
+async def _react_weekly_challenge_suggestions(message: discord.Message) -> bool:
+    if message.channel.id == ChannelID.WEEKLY_CHALLENGE_SUGGESTIONS:
+        await message.add_reaction(Emoji.CHECKMARK)
+        await message.add_reaction(Emoji.CROSS)
+        return True
+    return False
+
+
 func_list = (_react_fmbot, _react_rankup, _react_welcome, _react_introduce, _react_geonews, _guess_loc,
-             _react_left_right, _react_tip_of_the_day, _react_country_tournament, _deal_with_bots, _add_matches,
-             _deal_with_ping, _react_video_stream, _filter_appr_channels, _react_insane_score, _react_memes,
-             _berate_google_earth, _berate_soccer, _react_kanav_gm, _deal_with_simon, _handle_reactions, _praise_icy)
+             _react_left_right, _react_tip_of_the_day, _react_weekly_challenge_suggestions,
+             _react_country_tournament, _deal_with_bots, _add_matches, _deal_with_ping, _react_video_stream,
+             _filter_appr_channels, _react_insane_score, _react_memes, _berate_google_earth, _berate_soccer,
+             _react_kanav_gm, _deal_with_simon, _handle_reactions, _praise_icy,
+             )

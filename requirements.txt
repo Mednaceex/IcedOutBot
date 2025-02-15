@@ -1,5 +1,6 @@
 discord
 pillow
+pandas
 requests
 numpy
 jsonpickle

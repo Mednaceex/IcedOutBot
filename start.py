@@ -9,7 +9,8 @@ import discord
 import modules.commands
 from modules.data import THRESHOLD, TOKEN, SERVER, CardChannelIDs, CardChannelWeights, ICEDOUTSERVER_ID
 from modules.functions import get_channel_by_id, set_up_config, talk
-from modules.initializer import client, manager, registrator, card_game_manager, tree, config_manager, queue_manager
+from modules.initializer import client, manager, registrator, card_game_manager, tree, config_manager, queue_manager, \
+    profile_manager
 from modules.logger import logger
 from modules.on_message_functions import func_list
 
@@ -49,6 +50,7 @@ async def on_ready():
     manager.open_picks()
     manager.open_matches()
     queue_manager.open_queues()
+    profile_manager.open_profiles()
     card_game_manager.set_channels([await get_channel_by_id(client, chid) for chid in CardChannelIDs],
                                    CardChannelWeights)
     await tree.sync(guild=SERVER)

@@ -1,7 +1,7 @@
 import discord
 
 from modules.card_game import CardGameManager
-from modules.classes import PickManager, MessageRegistrator, ConfigManager
+from modules.classes import PickManager, MessageRegistrator, ConfigManager, ProfileManager
 from modules.data import MAX_THRESHOLD, THRESHOLD
 from modules.queue import QueueManager
 
@@ -14,3 +14,4 @@ registrator = MessageRegistrator(MAX_THRESHOLD)
 card_game_manager = CardGameManager(message_threshold=THRESHOLD)
 config_manager = ConfigManager()
 queue_manager = QueueManager()
+profile_manager = ProfileManager()

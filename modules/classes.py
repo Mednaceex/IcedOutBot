@@ -686,6 +686,45 @@ class ConfigManager:
         self.PLAYOFFS = False
 
 
+class ProfileManager:
+    def __init__(self):
+        self.profile_dict = {}
+
+    def open_profiles(self):
+        with open(Path('data', 'profiles.json'), 'r') as file:
+            dct = json.load(file)
+            for key, value in dct.items():
+                self.profile_dict[int(key)] = value
+
+    def save_profiles(self):
+        with open(Path('data', 'profiles.json'), 'w') as file:
+            json.dump(self.profile_dict, file)
+
+    def is_profile_submitted(self, user_id: int) -> bool:
+        return user_id in self.profile_dict.keys()
+
+    def store_profile(self, user_id: int, link: str):
+        self.profile_dict[user_id] = link
+        self.save_profiles()
+
+    def create_profiles_message_list(self) -> list[str]:
+        lst = []
+        logger.debug(f'self.profile_dict is:\n {self.profile_dict}')
+        for key, value in self.profile_dict.items():
+            lst.append(f'<@{key}>: https://www.geoguessr.com/user/{value}')
+        logger.debug(f'lst is:\n {lst}')
+        return lst
+
+    def get_user_profile_message(self, user_id: int) -> str:
+        logger.debug(f'self.profile_dict is:\n {self.profile_dict}')
+        logger.debug(f'user_id is:\n {user_id}')
+        try:
+            message = f'<@{user_id}>\'s profile is https://www.geoguessr.com/user/{self.profile_dict[user_id]}.'
+        except KeyError:
+            message = 'This player hasn\'t submitted their profile yet!'
+        return message
+
+
 class InvalidChannelError(Exception):
     def __init__(self, msg: str):
         super(InvalidChannelError, self).__init__(msg)
